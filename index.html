@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <title>Webcam - Lưới Khung 40x40</title>
+  <title>Webcam với Lưới Tùy Chỉnh</title>
   <style>
     body {
       margin: 0;
@@ -38,12 +38,17 @@
       padding: 10px;
       border-radius: 10px;
     }
-    button {
-      padding: 8px 16px;
+    button, input[type="range"] {
       font-size: 14px;
+      padding: 8px;
       border-radius: 6px;
       border: none;
       cursor: pointer;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
   </style>
 </head>
@@ -53,6 +58,10 @@
     <canvas id="grid"></canvas>
 
     <div id="controls">
+      <label>
+        Kích thước ô:
+        <input type="range" id="gridSizeSlider" min="20" max="100" value="40" />
+      </label>
       <button id="toggleGrid">Ẩn/Hiện lưới</button>
       <button id="captureButton">Chụp ảnh</button>
     </div>
@@ -62,11 +71,12 @@
     const video = document.getElementById('video');
     const canvas = document.getElementById('grid');
     const ctx = canvas.getContext('2d');
-    const toggleGridBtn = document.getElementById('toggleGrid');
-    const captureBtn = document.getElementById('captureButton');
+    const captureButton = document.getElementById('captureButton');
+    const toggleGridButton = document.getElementById('toggleGrid');
+    const gridSizeSlider = document.getElementById('gridSizeSlider');
 
     let showGrid = true;
-    const gridSize = 40;
+    let gridSize = parseInt(gridSizeSlider.value, 10);
 
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
@@ -77,50 +87,69 @@
       });
 
     function drawGrid() {
-      const width = canvas.width = video.videoWidth || window.innerWidth;
-      const height = canvas.height = video.videoHeight || window.innerHeight;
+      const w = canvas.width = video.videoWidth || window.innerWidth;
+      const h = canvas.height = video.videoHeight || window.innerHeight;
 
-      ctx.clearRect(0, 0, width, height);
+      ctx.clearRect(0, 0, w, h);
 
       if (!showGrid) return;
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
       ctx.lineWidth = 1;
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = 'white';
 
-      // Vẽ khung vuông 40x40px
-      for (let y = 0; y < height; y += gridSize) {
-        for (let x = 0; x < width; x += gridSize) {
-          ctx.strokeRect(x, y, gridSize, gridSize);
-        }
+      // Dọc (Cột)
+      for (let x = 0, col = 1; x < w; x += gridSize, col++) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+        ctx.fillText(`C${col}`, x + 2, 12);
+      }
+
+      // Ngang (Hàng)
+      for (let y = 0, row = 1; y < h; y += gridSize, row++) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+        ctx.fillText(`R${row}`, 2, y - 2);
       }
     }
 
-    toggleGridBtn.addEventListener('click', () => {
-      showGrid = !showGrid;
-      drawGrid();
-    });
+    window.addEventListener('resize', drawGrid);
 
-    captureBtn.addEventListener('click', () => {
+    captureButton.addEventListener('click', () => {
       const offscreenCanvas = document.createElement('canvas');
       offscreenCanvas.width = canvas.width;
       offscreenCanvas.height = canvas.height;
       const offCtx = offscreenCanvas.getContext('2d');
 
-      // Chụp hình từ video
+      // Vẽ ảnh từ video
       offCtx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
 
-      // Vẽ lưới nếu đang hiển thị
+      // Nếu đang hiển thị lưới, vẽ thêm lưới
       if (showGrid) {
         offCtx.drawImage(canvas, 0, 0);
       }
 
+      // Tải ảnh
       const link = document.createElement('a');
-      link.download = 'webcam_grid_40x40.png';
+      link.download = 'webcam_grid_custom.png';
       link.href = offscreenCanvas.toDataURL('image/png');
       link.click();
     });
 
-    window.addEventListener('resize', drawGrid);
+    toggleGridButton.addEventListener('click', () => {
+      showGrid = !showGrid;
+      drawGrid();
+    });
+
+    gridSizeSlider.addEventListener('input', () => {
+      gridSize = parseInt(gridSizeSlider.value, 10);
+      drawGrid();
+    });
   </script>
 </body>
 </html>
