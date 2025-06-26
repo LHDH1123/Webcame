@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <title>Webcam với Lưới Tùy Chỉnh</title>
+  <title>Webcam Lưới 1cm – Cố định</title>
   <style>
     body {
       margin: 0;
@@ -13,7 +13,7 @@
       position: relative;
       width: 100vw;
       height: 100vh;
-      background: #000;
+      background: black;
     }
     video, canvas {
       position: absolute;
@@ -59,8 +59,8 @@
 
     <div id="controls">
       <label>
-        Kích thước ô:
-        <input type="range" id="gridSizeSlider" min="20" max="100" value="40" />
+        Kích thước ô (px ≈ 1cm):
+        <input type="range" id="gridSizeSlider" min="30" max="100" value="37.8" step="0.1" />
       </label>
       <button id="toggleGrid">Ẩn/Hiện lưới</button>
       <button id="captureButton">Chụp ảnh</button>
@@ -71,12 +71,12 @@
     const video = document.getElementById('video');
     const canvas = document.getElementById('grid');
     const ctx = canvas.getContext('2d');
-    const captureButton = document.getElementById('captureButton');
     const toggleGridButton = document.getElementById('toggleGrid');
+    const captureButton = document.getElementById('captureButton');
     const gridSizeSlider = document.getElementById('gridSizeSlider');
 
     let showGrid = true;
-    let gridSize = parseInt(gridSizeSlider.value, 10);
+    let pixelsPerCm = parseFloat(gridSizeSlider.value);
 
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
@@ -91,7 +91,6 @@
       const h = canvas.height = video.videoHeight || window.innerHeight;
 
       ctx.clearRect(0, 0, w, h);
-
       if (!showGrid) return;
 
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
@@ -99,24 +98,36 @@
       ctx.font = '12px sans-serif';
       ctx.fillStyle = 'white';
 
-      // Dọc (Cột)
-      for (let x = 0, col = 1; x < w; x += gridSize, col++) {
+      // Vẽ cột (dọc)
+      for (let x = 0; x < w; x += pixelsPerCm) {
+        const label = Math.abs(x / pixelsPerCm).toFixed(1);
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, h);
         ctx.stroke();
-        ctx.fillText(`C${col}`, x + 2, 12);
+        ctx.fillText(`${label}`, x + 2, 12);
       }
 
-      // Ngang (Hàng)
-      for (let y = 0, row = 1; y < h; y += gridSize, row++) {
+      // Vẽ hàng (ngang)
+      for (let y = 0; y < h; y += pixelsPerCm) {
+        const label = Math.abs(y / pixelsPerCm).toFixed(1);
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(w, y);
         ctx.stroke();
-        ctx.fillText(`R${row}`, 2, y - 2);
+        ctx.fillText(`${label}`, 2, y - 2);
       }
     }
+
+    gridSizeSlider.addEventListener('input', () => {
+      pixelsPerCm = parseFloat(gridSizeSlider.value);
+      drawGrid();
+    });
+
+    toggleGridButton.addEventListener('click', () => {
+      showGrid = !showGrid;
+      drawGrid();
+    });
 
     window.addEventListener('resize', drawGrid);
 
@@ -125,30 +136,12 @@
       offscreenCanvas.width = canvas.width;
       offscreenCanvas.height = canvas.height;
       const offCtx = offscreenCanvas.getContext('2d');
-
-      // Vẽ ảnh từ video
-      offCtx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
-
-      // Nếu đang hiển thị lưới, vẽ thêm lưới
-      if (showGrid) {
-        offCtx.drawImage(canvas, 0, 0);
-      }
-
-      // Tải ảnh
+      offCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      if (showGrid) offCtx.drawImage(canvas, 0, 0);
       const link = document.createElement('a');
-      link.download = 'webcam_grid_custom.png';
+      link.download = 'webcam_grid_cm.png';
       link.href = offscreenCanvas.toDataURL('image/png');
       link.click();
-    });
-
-    toggleGridButton.addEventListener('click', () => {
-      showGrid = !showGrid;
-      drawGrid();
-    });
-
-    gridSizeSlider.addEventListener('input', () => {
-      gridSize = parseInt(gridSizeSlider.value, 10);
-      drawGrid();
     });
   </script>
 </body>
